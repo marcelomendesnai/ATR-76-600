@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ATR 72-600 — SYSTEMS MATRIX</title>
+
+<!--
+  DESIGN: EFIS MFD Display
+  Estética: tela de MFD real de cockpit — fundo fosco escuro, fonte monospace técnica,
+  glow nas células ativas, scanlines sutis, staggered reveal nas linhas ao carregar.
+  Fontes: Orbitron (títulos/headers — futurista aeronáutico) + Share Tech Mono (dados)
+  Padrão artefato:
+  - Sem Arial, Segoe UI nos dados (fonte técnica monospace)
+  - Viewport obrigatório
+  - Tabela: overflow-x auto, th/td width:1% nowrap
+  - Primeira coluna sticky left
+  - Tipografia responsiva mobile/desktop
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Paleta MFD */
+  --bg-deep:    #050a0e;
+  --bg-screen:  #070d12;
+  --bg-bezel:   #0d1a22;
+  --bg-header:  #071018;
+  --border-dim: #0e2030;
+  --border-glow:#1a4060;
+
+  /* Estados — cores com glow */
+  --c-on-bg:   #022d14; --c-on-fg:   #00e676; --c-on-glow:  #00e67640;
+  --c-off-bg:  #0a0f14; --c-off-fg:  #546e7a;
+  --c-stby-bg: #1a0f00; --c-stby-fg: #ffab00; --c-stby-glow:#ffab0030;
+  --c-chng-bg: #001830; --c-chng-fg: #29b6f6; --c-chng-glow:#29b6f630;
+  --c-req-bg:  #150820; --c-req-fg:  #ce93d8;
+  --c-na-bg:   #070d12; --c-na-fg:   #263238;
+  --c-warn-bg: #1f0000; --c-warn-fg: #ff5252; --c-warn-glow:#ff525240;
+  --c-ok-bg:   #001520; --c-ok-fg:   #4fc3f7; --c-ok-glow:  #4fc3f730;
+
+  /* Tipografia */
+  --font-display: 'Orbitron', monospace;
+  --font-data:    'Share Tech Mono', monospace;
+
+  --fs-title:  11pt;
+  --fs-sub:    6.5pt;
+  --fs-header: 6pt;
+  --fs-phase:  5.5pt;
+  --fs-data:   6.5pt;
+  --fs-group:  6pt;
+  --fs-legend: 6pt;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --fs-title:  15pt;
+    --fs-sub:    8pt;
+    --fs-header: 7.5pt;
+    --fs-phase:  6.5pt;
+    --fs-data:   7.5pt;
+    --fs-group:  7pt;
+    --fs-legend: 7pt;
+  }
+}
+
+/* ===== BODY & SCREEN FRAME ===== */
+body {
+  background: var(--bg-deep);
+  font-family: var(--font-data);
+  font-size: var(--fs-data);
+  color: #90a4ae;
+  min-height: 100vh;
+  padding: 10px;
+  /* Grain texture sutil — atmosfera de display OLED */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+@media (min-width: 768px) { body { padding: 24px; } }
+
+/* ===== BEZEL — moldura estilo painel MFD ===== */
+.mfd-frame {
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  background: var(--bg-screen);
+  box-shadow:
+    0 0 0 1px var(--border-dim),
+    0 0 40px #001a2c60,
+    inset 0 1px 0 #1a4060;
+  padding: 12px 10px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) { .mfd-frame { padding: 20px 20px 24px; border-radius: 10px; } }
+
+/* Scanlines overlay */
+.mfd-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+  border-radius: inherit;
+}
+
+/* Vinheta nas bordas — profundidade de display */
+.mfd-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, #000000aa 100%);
+  pointer-events: none;
+  z-index: 11;
+  border-radius: inherit;
+}
+
+/* ===== HEADER ===== */
+.hdr {
+  text-align: center;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.hdr-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.hdr-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #00e676;
+  box-shadow: 0 0 8px #00e676;
+  animation: blink 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes blink {
+  0%, 90%, 100% { opacity: 1; }
+  95% { opacity: 0.1; }
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 700;
+  color: #4fc3f7;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: 0 0 20px #29b6f660, 0 0 40px #29b6f620;
+}
+
+@media (min-width: 768px) { h1 { letter-spacing: 5px; } }
+
+.hdr-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #1a4060, #29b6f6, #1a4060, transparent);
+  margin: 6px 0 4px;
+}
+
+.subtitle {
+  font-family: var(--font-data);
+  font-size: var(--fs-sub);
+  color: #37474f;
+  letter-spacing: 1px;
+}
+
+/* ===== LEGENDA ===== */
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  justify-content: center;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  background: rgba(0,0,0,0.3);
+}
+
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-data);
+  font-size: var(--fs-legend);
+  color: #546e7a;
+}
+
+.leg-box {
+  width: 10px; height: 8px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.lb-on   { background: var(--c-on-bg);   border: 1px solid var(--c-on-fg);   box-shadow: 0 0 4px var(--c-on-glow); }
+.lb-off  { background: var(--c-off-bg);  border: 1px solid #1a2a35; }
+.lb-stby { background: var(--c-stby-bg); border: 1px solid var(--c-stby-fg); box-shadow: 0 0 4px var(--c-stby-glow); }
+.lb-chng { background: var(--c-chng-bg); border: 1px solid var(--c-chng-fg); box-shadow: 0 0 4px var(--c-chng-glow); }
+.lb-req  { background: var(--c-req-bg);  border: 1px solid var(--c-req-fg); }
+.lb-ok   { background: var(--c-ok-bg);   border: 1px solid var(--c-ok-fg);   box-shadow: 0 0 4px var(--c-ok-glow); }
+.lb-warn { background: var(--c-warn-bg); border: 1px solid var(--c-warn-fg); box-shadow: 0 0 4px var(--c-warn-glow); }
+.lb-na   { background: var(--c-na-bg);   border: 1px solid #0d1a22; }
+
+/* ===== TABELA ===== */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+table {
+  width: auto;
+  border-collapse: collapse;
+  margin: 0;
+  table-layout: fixed;  /* força o browser a respeitar larguras do colgroup */
+}
+
+th, td {
+  white-space: nowrap;
+  padding: 3px 6px;
+  font-family: var(--font-data);
+  font-size: var(--fs-data);
+  text-align: center;
+  vertical-align: middle;
+  border: 1px solid #0a1820;
+}
+
+@media (min-width: 768px) {
+  th, td { padding: 4px 8px; font-size: var(--fs-data); }
+}
+
+/* ===== HEADER DAS FASES ===== */
+thead th {
+  background: var(--bg-header);
+  color: #29b6f6;
+  font-family: var(--font-display);
+  font-size: var(--fs-header);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  border-bottom: 1px solid #1a4060;
+  line-height: 1.5;
+  padding: 5px 6px;
+}
+
+@media (min-width: 768px) { thead th { padding: 7px 8px; } }
+
+.fase-num {
+  display: block;
+  font-family: var(--font-data);
+  font-size: var(--fs-phase);
+  color: #4fc3f7;
+  font-weight: 400;
+  margin-top: 2px;
+  letter-spacing: 0;
+}
+
+/* Canto superior esquerdo */
+thead th:first-child {
+  z-index: 4;
+  position: sticky;
+  left: 0;
+  background: #040c12;
+  border-right: 1px solid #1a4060;
+  border-bottom: 1px solid #1a4060;
+  text-align: left;
+  min-width: 85px;
+}
+
+@media (min-width: 768px) { thead th:first-child { min-width: 110px; } }
+
+/* Sub-headers Cold & Dark */
+.sub-gpu  { color: #00e676 !important; background: #011a09 !important; font-family: var(--font-data) !important; letter-spacing: 0 !important; border-top: none !important; }
+.sub-sgpu { color: #ffab00 !important; background: #120800 !important; font-family: var(--font-data) !important; letter-spacing: 0 !important; border-top: none !important; }
+
+/* ===== PRIMEIRA COLUNA (sticky) ===== */
+td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #040c12;
+  color: #78909c;
+  font-family: var(--font-data);
+  text-align: left;
+  white-space: nowrap;
+  border-right: 1px solid #0e2030;
+  min-width: 85px;
+}
+
+@media (min-width: 768px) { td:first-child { min-width: 110px; } }
+
+/* ===== GRUPO HEADERS ===== */
+.grupo-header td {
+  background: #030d14 !important;
+  color: #1a4a6e !important;
+  font-family: var(--font-display) !important;
+  font-size: var(--fs-group) !important;
+  font-weight: 600 !important;
+  letter-spacing: 2px !important;
+  text-align: left !important;
+  padding: 5px 8px 3px !important;
+  border-top: 1px solid #0d1f2d !important;
+  border-bottom: none !important;
+  text-transform: uppercase;
+}
+
+/* ===== CÉLULAS DE ESTADO ===== */
+.on   {
+  background: var(--c-on-bg);
+  color: var(--c-on-fg);
+  font-weight: 600;
+  box-shadow: inset 0 0 6px var(--c-on-glow), 0 0 4px var(--c-on-glow);
+  text-shadow: 0 0 8px var(--c-on-fg);
+}
+.off  { background: var(--c-off-bg); color: var(--c-off-fg); }
+.stby {
+  background: var(--c-stby-bg);
+  color: var(--c-stby-fg);
+  font-weight: 600;
+  box-shadow: inset 0 0 5px var(--c-stby-glow);
+  text-shadow: 0 0 6px var(--c-stby-fg);
+}
+.chng {
+  background: var(--c-chng-bg);
+  color: var(--c-chng-fg);
+  font-weight: 600;
+  box-shadow: inset 0 0 5px var(--c-chng-glow);
+  text-shadow: 0 0 6px var(--c-chng-fg);
+}
+.req  { background: var(--c-req-bg); color: var(--c-req-fg); }
+.na   { background: var(--c-na-bg);  color: var(--c-na-fg); font-style: italic; }
+.warn {
+  background: var(--c-warn-bg);
+  color: var(--c-warn-fg);
+  font-weight: 700;
+  box-shadow: inset 0 0 8px var(--c-warn-glow), 0 0 6px var(--c-warn-glow);
+  text-shadow: 0 0 10px var(--c-warn-fg);
+  animation: warn-pulse 2s ease-in-out infinite;
+}
+.ok   {
+  background: var(--c-ok-bg);
+  color: var(--c-ok-fg);
+  box-shadow: inset 0 0 5px var(--c-ok-glow);
+  text-shadow: 0 0 6px var(--c-ok-fg);
+}
+
+@keyframes warn-pulse {
+  0%, 100% { box-shadow: inset 0 0 8px var(--c-warn-glow), 0 0 6px var(--c-warn-glow); }
+  50%       { box-shadow: inset 0 0 14px #ff525260, 0 0 12px #ff525250; }
+}
+
+/* ===== STAGGERED ROW REVEAL ===== */
+tbody tr {
+  opacity: 0;
+  animation: row-in 0.3s ease forwards;
+}
+
+tbody tr:nth-child(1)  { animation-delay: 0.05s; }
+tbody tr:nth-child(2)  { animation-delay: 0.08s; }
+tbody tr:nth-child(3)  { animation-delay: 0.11s; }
+tbody tr:nth-child(4)  { animation-delay: 0.14s; }
+tbody tr:nth-child(5)  { animation-delay: 0.17s; }
+tbody tr:nth-child(6)  { animation-delay: 0.20s; }
+tbody tr:nth-child(7)  { animation-delay: 0.23s; }
+tbody tr:nth-child(8)  { animation-delay: 0.26s; }
+tbody tr:nth-child(9)  { animation-delay: 0.29s; }
+tbody tr:nth-child(10) { animation-delay: 0.32s; }
+tbody tr:nth-child(11) { animation-delay: 0.35s; }
+tbody tr:nth-child(12) { animation-delay: 0.38s; }
+tbody tr:nth-child(13) { animation-delay: 0.41s; }
+tbody tr:nth-child(14) { animation-delay: 0.44s; }
+tbody tr:nth-child(15) { animation-delay: 0.47s; }
+tbody tr:nth-child(16) { animation-delay: 0.50s; }
+tbody tr:nth-child(17) { animation-delay: 0.53s; }
+tbody tr:nth-child(18) { animation-delay: 0.56s; }
+tbody tr:nth-child(19) { animation-delay: 0.59s; }
+tbody tr:nth-child(20) { animation-delay: 0.62s; }
+tbody tr:nth-child(21) { animation-delay: 0.65s; }
+tbody tr:nth-child(22) { animation-delay: 0.68s; }
+tbody tr:nth-child(23) { animation-delay: 0.71s; }
+tbody tr:nth-child(24) { animation-delay: 0.74s; }
+tbody tr:nth-child(25) { animation-delay: 0.77s; }
+tbody tr:nth-child(26) { animation-delay: 0.80s; }
+tbody tr:nth-child(27) { animation-delay: 0.83s; }
+tbody tr:nth-child(28) { animation-delay: 0.86s; }
+tbody tr:nth-child(29) { animation-delay: 0.89s; }
+tbody tr:nth-child(30) { animation-delay: 0.92s; }
+tbody tr:nth-child(31) { animation-delay: 0.95s; }
+tbody tr:nth-child(32) { animation-delay: 0.98s; }
+tbody tr:nth-child(33) { animation-delay: 1.01s; }
+tbody tr:nth-child(34) { animation-delay: 1.04s; }
+tbody tr:nth-child(35) { animation-delay: 1.07s; }
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Hover */
+tbody tr:not(.grupo-header):hover td {
+  filter: brightness(1.35);
+  transition: filter 0.1s;
+}
+
+/* ===== RODAPÉ ===== */
+.footer {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #0d1a22;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.aviso {
+  font-family: var(--font-data);
+  font-size: 5.5pt;
+  color: #546e7a;  /* era #263238 — muito escuro */
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.assinatura {
+  font-family: var(--font-display);
+  font-size: 6pt;
+  color: #29b6f6;  /* era #1a3a50 — quase invisível. Azul MFD com glow */
+  text-align: center;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px #29b6f640;
+}
+
+@media (min-width: 768px) {
+  .aviso { font-size: 7pt; }
+  .assinatura { font-size: 7pt; }
+}
+</style>
+</head>
+<body>
+
+<div class="mfd-frame">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="hdr-dot"></div>
+    <h1>ATR 72-600 · Systems Matrix</h1>
+    <div class="hdr-dot"></div>
+  </div>
+  <div class="hdr-line"></div>
+  <p class="subtitle">FCTM SEP/2018 · CAPS 31–53 · NORMAL PROCEDURES · MSFS 2024</p>
+</div>
+
+<!-- LEGENDA -->
+<div class="legenda">
+  <div class="leg-item"><div class="leg-box lb-on"></div>ON / Ativo</div>
+  <div class="leg-item"><div class="leg-box lb-off"></div>OFF</div>
+  <div class="leg-item"><div class="leg-box lb-stby"></div>STBY / Parcial</div>
+  <div class="leg-item"><div class="leg-box lb-chng"></div>Transição (→)</div>
+  <div class="leg-item"><div class="leg-box lb-req"></div>As Required</div>
+  <div class="leg-item"><div class="leg-box lb-ok"></div>Check / Verify</div>
+  <div class="leg-item"><div class="leg-box lb-warn"></div>Crítico / Atenção</div>
+  <div class="leg-item"><div class="leg-box lb-na"></div>N/A</div>
+</div>
+
+<!-- TABELA -->
+<div class="table-responsive">
+<table>
+<colgroup>
+  <col><!-- SYS -->
+  <col style="width:52px; min-width:52px; max-width:52px;"><!-- c/GPU -->
+  <col style="width:52px; min-width:52px; max-width:52px;"><!-- s/GPU -->
+</colgroup>
+<thead>
+  <tr>
+    <th rowspan="2">SYS<span class="fase-num">↓ × →</span></th>
+    <th colspan="2" style="text-align:center; border-bottom:1px solid #1a4060;">1<span class="fase-num">Cold &amp; Dark</span></th>
+    <th rowspan="2">2<span class="fase-num">Hotel Mode</span></th>
+    <th rowspan="2">3<span class="fase-num">Bef.Prop.Rot.</span></th>
+    <th rowspan="2">4<span class="fase-num">Bef.Taxi</span></th>
+    <th rowspan="2">5<span class="fase-num">Taxi</span></th>
+    <th rowspan="2">6<span class="fase-num">Bef.T/O</span></th>
+    <th rowspan="2">7<span class="fase-num">Take-Off</span></th>
+    <th rowspan="2">8<span class="fase-num">After T/O</span></th>
+    <th rowspan="2">9<span class="fase-num">Clb/Crz</span></th>
+    <th rowspan="2">10<span class="fase-num">Desc.</span></th>
+    <th rowspan="2">11<span class="fase-num">Approach</span></th>
+    <th rowspan="2">12<span class="fase-num">Bef.Ldg</span></th>
+    <th rowspan="2">13<span class="fase-num">After Ldg</span></th>
+    <th rowspan="2">14<span class="fase-num">Parking</span></th>
+  </tr>
+  <tr>
+    <th class="sub-gpu"  style="width:52px; min-width:52px; max-width:52px;">c/GPU</th>
+    <th class="sub-sgpu" style="width:52px; min-width:52px; max-width:52px;">s/GPU</th>
+  </tr>
+</thead>
+<tbody>
+
+<tr class="grupo-header"><td colspan="16">⚡ ELÉTRICO</td></tr>
+
+<tr>
+  <td>GPU (Ext.Pwr)</td>
+  <td class="on" title="GPU conectado — alimenta cockpit antes do Hotel Mode">ON</td>
+  <td class="na" title="GPU não disponível — bateria é a única fonte antes do ENG2">N/A</td>
+  <td class="chng" title="Desconectar após ENG2 estabilizar: 'YOU CAN DISCONNECT GPU'">→OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="chng" title="Conectar após shutdown se disponível — DC EXT PWR AVAIL ON">→ON</td>
+</tr>
+
+<tr>
+  <td>DC GEN 1+2</td>
+  <td class="off" title="GPU supre a elétrica — GEN offline">OFF</td>
+  <td class="off" title="Bateria supre. GEN offline até ENG2">OFF</td>
+  <td class="stby" title="DC GEN 2 ON após ENG2 start. DC BTC fechado. GEN 1 ainda OFF">GEN2</td>
+  <td class="stby" title="Somente GEN 2 online">GEN2</td>
+  <td class="chng" title="DC GEN 1 ON após ENG1 start. DC BTC abre (normal com 2 gens)">→AMBOS</td>
+  <td class="on">AMBOS</td><td class="on">AMBOS</td><td class="on">AMBOS</td><td class="on">AMBOS</td>
+  <td class="on">AMBOS</td><td class="on">AMBOS</td><td class="on">AMBOS</td><td class="on">AMBOS</td>
+  <td class="stby" title="GEN 1 OFF após shutdown ENG1 no taxi. GEN 2 ainda online">GEN2</td>
+  <td class="chng" title="GEN 2 OFF após shutdown ENG2. GPU assume se disponível">→OFF</td>
+</tr>
+
+<tr>
+  <td>Bateria</td>
+  <td class="on" title="ON — GPU é a fonte principal. Bateria em standby/backup">ON</td>
+  <td class="warn" title="ON — ÚNICA fonte elétrica. FCTM: manter BAT OFF durante inspeção externa para não drenar!">ON ⚠</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="chng" title="OFF somente ao 'Leaving the Aircraft' — última ação">→OFF</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">🔧 PROPULSÃO &amp; HIDRÁULICO</td></tr>
+
+<tr>
+  <td>Prop Brake</td>
+  <td class="on" title="PROP BRK ON — verificar READY light. Se apagado: pressionar HYD AUX PUMP">ON</td>
+  <td class="on" title="PROP BRK ON — sem GPU, mesmo comportamento">ON</td>
+  <td class="on" title="Mantido ON durante Hotel Mode para travar hélice do ENG2">ON</td>
+  <td class="on">ON</td>
+  <td class="chng" title="HYD AUX PUMP PB → READY light ON → PROP BRAKE OFF. Hélice começa a girar">→OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td>
+  <td class="chng" title="HYD AUX PUMP → READY light → PROP BRAKE ON antes de desligar ENG2">→ON</td>
+</tr>
+
+<tr>
+  <td>Cond.Lever (CL)</td>
+  <td class="off" title="CL1 e CL2 em FUEL SHUTOFF — cold &amp; dark">FS/O</td>
+  <td class="off" title="CL1 e CL2 em FUEL SHUTOFF — mesma config sem GPU">FS/O</td>
+  <td class="chng" title="CL2 → FTHR quando NH=10%. CL1 permanece FS/O">CL2 FTHR</td>
+  <td class="stby" title="CL2 em FTHR. Aguardando release prop. CL1 ainda FS/O">CL2 FTHR</td>
+  <td class="chng" title="CL2→AUTO após NP~71%. Depois ENG1: CL1 FTHR→AUTO. Ambos AUTO ao final">→AUTO</td>
+  <td class="on" title="CL1 e CL2 em AUTO">AUTO</td><td class="on">AUTO</td><td class="on">AUTO</td>
+  <td class="on">AUTO</td><td class="on">AUTO</td><td class="on">AUTO</td><td class="on">AUTO</td>
+  <td class="on">AUTO</td>
+  <td class="chng" title="After 1min GI: CL1 FTHR → aguarda 30s → CL1 FUEL S/O (shutdown ENG1)">CL1→FS/O</td>
+  <td class="chng" title="No parking: CL2 FTHR → prop para → CL2 FUEL S/O">CL2→FS/O</td>
+</tr>
+
+<tr>
+  <td>ATPCS</td>
+  <td class="ok" title="Static test durante cockpit prep. Pressed in / no light = normal">TEST✓</td>
+  <td class="ok" title="Mesmo teste — bateria única fonte, fazer rápido">TEST✓</td>
+  <td class="ok" title="Static test realizado (short transit: ATPCS STATIC TEST)">TEST✓</td>
+  <td class="off" title="Não armado ainda — motores não em T/O config">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off" title="Ainda não armado na posição de espera">OFF</td>
+  <td class="warn" title="ATPCS ARM LIGHT acende durante corrida. Se NÃO armar → ABORT!">ARM ⚠</td>
+  <td class="on">ARMED</td><td class="on">ARMED</td><td class="on">ARMED</td><td class="on">ARMED</td>
+  <td class="on">ARMED</td>
+  <td class="ok" title="Daily dynamic test no último voo do dia — não fazer durante taxi">TEST</td>
+  <td class="off">OFF</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">🕹️ COMANDOS &amp; CONFIGURAÇÃO</td></tr>
+
+<tr>
+  <td>Gust Lock</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td>
+  <td class="chng" title="GUST LOCK LEVER OFF ao chegar no holding point (Before T/O procedure)">→OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="chng" title="GUST LOCK LEVER ENGAGE após vaciar pista (After Landing procedure)">→ON</td>
+  <td class="on">ON</td>
+</tr>
+
+<tr>
+  <td>Flaps</td>
+  <td class="off">0°</td><td class="off">0°</td><td class="off">0°</td><td class="off">0°</td>
+  <td class="chng" title="FLAPS LEVER 15° no Before Taxi — monitorar extensão">→15°</td>
+  <td class="stby" title="15° para decolagem">15°</td><td class="stby">15°</td>
+  <td class="stby" title="Decolagem com Flaps 15°">15°</td>
+  <td class="chng" title="Recolher para 0° ao passar F speed (white/icing bug)">→0°</td>
+  <td class="off">0°</td><td class="off">0°</td>
+  <td class="chng" title="0°→15° (G/S alive) →25° (LDG gear 3 green) durante approach">→15°/25°</td>
+  <td class="warn" title="30° (ou 35° se peso elevado) — Before Landing C/L complete">30°(35°)</td>
+  <td class="chng" title="CM2: FLAPS LEVER 0 ao vaciar pista">→0°</td>
+  <td class="off">0°</td>
+</tr>
+
+<tr>
+  <td>Frk. Estac.</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td>
+  <td class="on" title="Mantido ON durante ENG1 start">ON</td>
+  <td class="off" title="Liberado para taxiar">OFF</td>
+  <td class="req" title="AS REQUIRED no holding point">ASR</td>
+  <td class="off" title="BRAKES RELEASE para iniciar corrida">OFF</td>
+  <td class="na">N/A</td><td class="na">N/A</td><td class="na">N/A</td><td class="na">N/A</td>
+  <td class="na">N/A</td>
+  <td class="req" title="AS REQUIRED durante taxi ao gate">ASR</td>
+  <td class="on" title="PARKING BRAKE ENGAGED — 'PARKING BRAKE SET'">ON</td>
+</tr>
+
+<tr>
+  <td>Idle Gate</td>
+  <td class="ok" title="CHECK: puxado, banda âmbar visível, sem IDLE GATE FAIL">PULL✓</td>
+  <td class="ok" title="Mesmo check">PULL✓</td>
+  <td class="on">PULL</td><td class="on">PULL</td><td class="on">PULL</td>
+  <td class="on">PULL</td>
+  <td class="on" title="Impede retração involuntária para beta durante corrida de decolagem">PULL</td>
+  <td class="on">PULL</td>
+  <td class="na" title="Em voo, idle gate irrelevante — beta range só no solo">N/A</td>
+  <td class="na">N/A</td><td class="na">N/A</td><td class="na">N/A</td><td class="na">N/A</td>
+  <td class="on" title="Ativo novamente no solo">PULL</td>
+  <td class="on">PULL</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">⚙️ POTÊNCIA</td></tr>
+
+<tr>
+  <td>PL (Manete)</td>
+  <td class="off" title="Ground Idle — posição de repouso">GI</td>
+  <td class="off" title="Ground Idle">GI</td>
+  <td class="off">GI</td><td class="off">GI</td><td class="off">GI</td><td class="off">GI</td>
+  <td class="off">GI</td>
+  <td class="warn" title="Advance to NOTCH — T/O power set">NOTCH</td>
+  <td class="on" title="Mantido no NOTCH — CLB mode na accel. altitude">NOTCH</td>
+  <td class="on" title="NOTCH — CLB até Cruise speed, então CRZ">NOTCH</td>
+  <td class="stby" title="Reduzido conforme descida — sem modo específico de manete">REDUZ</td>
+  <td class="stby">REDUZ</td>
+  <td class="on" title="PWR MGT → TO, PLs avançam ao NOTCH (gear down)">NOTCH</td>
+  <td class="off" title="GI após pouso e saída da pista">GI</td>
+  <td class="off">GI</td>
+</tr>
+
+<tr>
+  <td>Power MGT</td>
+  <td class="stby" title="Selecionado TO durante Cockpit Prep Step 2">TO</td>
+  <td class="stby" title="Mesma seleção">TO</td>
+  <td class="stby">TO</td><td class="stby">TO</td><td class="stby">TO</td><td class="stby">TO</td>
+  <td class="stby">TO</td>
+  <td class="warn" title="TO — controla torque de decolagem automaticamente">TO</td>
+  <td class="chng" title="→ CLB na acceleration altitude: 'PWR MGT SELECTOR CLB'">→CLB</td>
+  <td class="chng" title="CLB na subida → CRZ ao atingir cruise speed">CLB→CRZ</td>
+  <td class="stby" title="CRZ mantido durante descida até approach">CRZ</td>
+  <td class="chng" title="→ TO ao baixar gear (G/S 1 dot ou 2NM FAF)">→TO</td>
+  <td class="warn" title="TO — controla torque de pousar">TO</td>
+  <td class="na">—</td><td class="na">—</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">🤖 AUTOMAÇÃO</td></tr>
+
+<tr>
+  <td>Piloto Auto.</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off" title="AP não usado na corrida de decolagem">OFF</td>
+  <td class="chng" title="Pode engajar AP após gear up e workload permit">→ON</td>
+  <td class="on" title="AP + YAW DAMPER — VNAV/LNAV ou VS/HDG">ON</td>
+  <td class="on">ON</td>
+  <td class="on" title="APP mode → LOC + G/S armados e capturados">APP</td>
+  <td class="on" title="AP mantido até próximo do solo — YAW DAMPER OFF final">ON</td>
+  <td class="off" title="FGCP → STBY após landing">OFF</td>
+  <td class="off">OFF</td>
+</tr>
+
+<tr>
+  <td>FMS / MCDU</td>
+  <td class="ok" title="INIT: POS INIT, NAV DATA, UNITS, WEIGHTS (FOB+ZFW), PERF INIT, FPLN">INIT</td>
+  <td class="ok" title="Mesmo INIT — fazer rápido (bateria drenando)">INIT</td>
+  <td class="ok" title="Continuação: FPLN completo, VNAV, navaids, V-speeds preliminares">SETUP</td>
+  <td class="ok" title="ZFW confirmado, V1/VR/V2 inseridos, T/O data confirmada">V-SPD✓</td>
+  <td class="ok" title="ATC clearance cross-check vs FMS. FGCP set (NAV src, HDG, IAS, ALT SEL)">ATC CHK</td>
+  <td class="on" title="FWS RCL. FPLN ativo. FMA lido na saída do taxiway">ATIVO</td>
+  <td class="on" title="FWS RCL. PERF T/O page no MCDU (PF). ND/FMA/MCDU sem amber msg">T/O PG</td>
+  <td class="on">ATIVO</td>
+  <td class="on" title="Speed bugs — F speed (white/icing) para retração flaps">MONITOR</td>
+  <td class="on" title="CRZ mode. Monitorar predictions, EFOB, TOD, DEST RAIM">CRZ MODE</td>
+  <td class="on" title="STAR + Approach inseridos. PERF APP (Wind+QNH). VNAV TEMP set">STAR/APP</td>
+  <td class="on" title="APP SPEED ACTIVATED (15 NM ou manual) — magenta 170 kt">APP SPD</td>
+  <td class="on">ATIVO</td>
+  <td class="stby" title="FGCP → STBY. Não há mais uso do FMS após pouso">STBY</td>
+  <td class="na">—</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">📡 NAVEGAÇÃO / ATC</td></tr>
+
+<tr>
+  <td>Transponder</td>
+  <td class="stby" title="SURV / XPDR 1 STBY durante cockpit prep">STBY</td>
+  <td class="stby" title="Mesma config">STBY</td>
+  <td class="stby">STBY</td>
+  <td class="stby" title="STBY ou ON conforme requisito ATC local">STBY/ON</td>
+  <td class="stby" title="Conforme ATC local — TCAS ABOVE">STBY/ON</td>
+  <td class="warn" title="XPDR → ALT (Mode C) ao entrar na pista">ALT</td>
+  <td class="warn">ALT</td><td class="warn">ALT</td><td class="warn">ALT</td>
+  <td class="warn" title="TCAS → BELOW na descida">ALT</td>
+  <td class="warn">ALT</td><td class="warn">ALT</td>
+  <td class="req" title="AS REQUIRED ao vaciar pista — conforme local">ASR</td>
+  <td class="stby" title="XPDR STBY no parking">STBY</td>
+</tr>
+
+<tr>
+  <td>Altímetro</td>
+  <td class="ok" title="QNH do aeroporto de partida — SET &amp; CHECK">QNH</td>
+  <td class="ok" title="Mesma ação">QNH</td>
+  <td class="ok">QNH</td><td class="ok">QNH</td><td class="ok">QNH</td>
+  <td class="ok">QNH</td><td class="ok">QNH</td>
+  <td class="chng" title="→ STD (1013.25 hPa) ao passar transition altitude">→STD</td>
+  <td class="on" title="Padrão STD em cruzeiro">STD</td>
+  <td class="chng" title="→ QNH ao cruzar o transition level na descida">→QNH</td>
+  <td class="ok">QNH</td><td class="ok">QNH</td><td class="ok">QNH</td><td class="ok">QNH</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">⛽ COMBUSTÍVEL</td></tr>
+
+<tr>
+  <td>Fuel Pumps</td>
+  <td class="ok" title="Testadas durante cockpit prep (FUEL PUMPS &amp; X-FEED TEST)">TEST✓</td>
+  <td class="ok" title="Mesmo teste">TEST✓</td>
+  <td class="stby" title="FUEL PUMP 2 ON — obrigatório antes do Hotel Mode start">PUMP2</td>
+  <td class="stby">PUMP2</td>
+  <td class="on" title="PUMP 1 ON após ENG1 start — ambas ativas">AMBAS</td>
+  <td class="on">AMBAS</td><td class="on">AMBAS</td><td class="on">AMBAS</td><td class="on">AMBAS</td>
+  <td class="on">AMBAS</td><td class="on">AMBAS</td><td class="on">AMBAS</td><td class="on">AMBAS</td>
+  <td class="on">AMBAS</td>
+  <td class="chng" title="FUEL PUMP 1+2 OFF somente ao 'Leaving the Aircraft'">→OFF</td>
+</tr>
+
+<tr>
+  <td>Crossfeed</td>
+  <td class="ok" title="Testado durante cockpit prep — normal operação = OFF">TEST✓</td>
+  <td class="ok" title="Mesmo teste">TEST✓</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">❄️ BLEED / ANTI-ICE</td></tr>
+
+<tr>
+  <td>Probes Heat.</td>
+  <td class="off" title="OFF — PROBES HEATING CHECK OFF para não machucar pessoal de solo">OFF</td>
+  <td class="off" title="Mesma config">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="on" title="PROBES HEATING ON — Before Taxi procedure">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="chng" title="PROBES HEATING OFF — After Landing procedure">→OFF</td>
+  <td class="off">OFF</td>
+</tr>
+
+<tr>
+  <td>Anti-ice</td>
+  <td class="off" title="DE/ANTI-ICING CHECK TURNED OFF durante cockpit prep">OFF</td>
+  <td class="off" title="Mesma config">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="req" title="AS REQUIRED — obrigatório se icing esperado antes de 1500ft AAL ou 10min">ASR</td>
+  <td class="req">ASR</td>
+  <td class="req" title="Usar speeds de icing se anti-ice ON no T/O">ASR</td>
+  <td class="req">ASR</td><td class="req">ASR</td><td class="req">ASR</td><td class="req">ASR</td>
+  <td class="req">ASR</td><td class="req">ASR</td>
+  <td class="chng" title="DE/ANTI-ICING OFF — After Landing procedure">→OFF</td>
+  <td class="off">OFF</td>
+</tr>
+
+<tr>
+  <td>Bleed / Packs</td>
+  <td class="ok" title="CHECK — AFR AIR BLEED amber = normal em cold&amp;dark (sem motor)">CHECK</td>
+  <td class="ok" title="Mesmo check">CHECK</td>
+  <td class="on" title="Após ENG2: BLEED2 FAULT OFF, X VALVE OPEN ON, PACK1+2 FAULT OFF">→ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="req" title="BLEED VALVES AS REQUIRED — pode desligar para max performance">ASR</td>
+  <td class="req">ASR</td>
+  <td class="on" title="BLEED VALVES ON se estiveram OFF no T/O (After T/O procedure)">→ON</td>
+  <td class="on" title="ON — monitorar pressurização (ΔP, CAB ALT, CAB RATE)">ON</td>
+  <td class="on" title="Monitorar pressurização durante descida">ON</td>
+  <td class="on">ON</td><td class="on">ON</td>
+  <td class="na">—</td><td class="na">—</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">💡 LUZES EXTERNAS — FCTM CAP.31</td></tr>
+
+<tr>
+  <td>Luz NAV</td>
+  <td class="on" title="ON sempre que aeronave estiver eletricamente alimentada">ON</td>
+  <td class="on" title="ON sempre que eletricamente alimentada">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+</tr>
+
+<tr>
+  <td>Wing Lights</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="on" title="ON durante Hotel Mode start e inspeção de gelo">ON</td>
+  <td class="chng" title="OFF após ext. inspection closure">→OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="chng" title="OFF com CL2 FUEL S/O. WING LIGHTS OFF">→OFF</td>
+</tr>
+
+<tr>
+  <td>Beacon</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off" title="OFF — beacon só quando hélice girando">OFF</td>
+  <td class="on" title="BEACON ON — sinal de que hélice vai começar a girar (Before Prop Rot.)">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td>
+  <td class="chng" title="OFF após ambas as hélices pararem completamente">→OFF</td>
+</tr>
+
+<tr>
+  <td>Strobe</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="on" title="EXT LIGHTS ON ao alinhar na pista — lining up">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td><td class="on">ON</td>
+  <td class="chng" title="LANDING LIGHTS &amp; STROBES OFF ao vaciar pista">→OFF</td>
+  <td class="off">OFF</td>
+</tr>
+
+<tr>
+  <td>Landing Lt.</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td>
+  <td class="on" title="ON — EXT LIGHTS ON ao alinhar. Line-up → FL100">ON</td>
+  <td class="on" title="ON — line up até FL100">ON</td>
+  <td class="chng" title="OFF ao passar FL100 na subida">→OFF</td>
+  <td class="off" title="OFF acima FL100">OFF</td>
+  <td class="on" title="ON ao passar FL100 na descida">ON</td>
+  <td class="on">ON</td><td class="on">ON</td>
+  <td class="chng" title="OFF ao vaciar pista — LANDING LIGHTS &amp; STROBES OFF">→OFF</td>
+  <td class="off">OFF</td>
+</tr>
+
+<tr>
+  <td>Taxi / T/O Lt.</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="off">OFF</td>
+  <td class="on" title="TAXI &amp; T/O LIGHT ON — 'READY TO TAXI' (Taxi procedure)">ON</td>
+  <td class="on">ON</td>
+  <td class="chng" title="TAXI &amp; T/O LIGHTS OFF após positive climb + gear up">→OFF</td>
+  <td class="off">OFF</td><td class="off">OFF</td><td class="off">OFF</td>
+  <td class="on" title="TAXI &amp; T/O LIGHTS ON ao baixar gear (G/S alive ou 2NM FAF)">ON</td>
+  <td class="on">ON</td>
+  <td class="on" title="ON durante taxi ao gate após pouso">ON</td>
+  <td class="chng" title="TAXI &amp; T/O LIGHT OFF na última curva para parking">→OFF</td>
+</tr>
+
+<tr class="grupo-header"><td colspan="16">🛡️ CABINE / PASSAGEIROS</td></tr>
+
+<tr>
+  <td>Seat Belt Sign</td>
+  <td class="on" title="SIGNS PANEL ON durante cockpit prep — MEMO panel sem NO DEVICE">ON</td>
+  <td class="on" title="Mesmo estado">ON</td>
+  <td class="on">ON</td>
+  <td class="on" title="ON quando passageiros embarcam">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="on">ON</td>
+  <td class="req" title="AS REQUIRED acima FL100 — captain's discretion">ASR</td>
+  <td class="on" title="ON ao passar FL100 na descida — 'SEAT BELTS ON'">ON</td>
+  <td class="on">ON</td><td class="on">ON</td><td class="on">ON</td>
+  <td class="chng" title="SEAT BELT SIGN OFF após ambas as hélices pararem">→OFF</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+<!-- RODAPÉ -->
+<div class="footer">
+  <p class="aviso">⚠ REFERÊNCIA DE ESTUDO MSFS 2024 · FONTE: FCTM SEP/2018 CAPS 31–53 · PARA OPERAÇÃO REAL CONSULTE FCOM/FCTM VIGENTE</p>
+  <p class="assinatura">Documento produzido para fins de simulação (MSFS 2024) · Marcelo Mendes</p>
+</div>
+
+</div><!-- /mfd-frame -->
+</body>
+</html>

@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ATR 72-600 · EFB Checklist</title>
+<!--
+  ATR 72-600 EFB CHECKLIST
+  Design: EFIS MFD — mobile-first, iPhone-optimized
+  Fontes: Orbitron (headers) + Share Tech Mono (dados)
+  Fonte: FCTM Sep/2018 Caps 34–53 + GSX Pro Manual 3.8.2
+  Padrão artefato: Segoe UI nunca, viewport obrigatório, touch targets 44px mínimo
+-->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+
+:root {
+  --bg:         #050a0e;
+  --bg-panel:   #070d12;
+  --bg-item:    #08111a;
+  --bg-group:   #040c12;
+  --border:     #0e2030;
+  --border-hi:  #1a4060;
+  --c-blue:     #29b6f6;
+  --c-blue-dim: #0d4a6e;
+  --c-green:    #00e676;
+  --c-green-dim:#022d14;
+  --c-amber:    #ffab00;
+  --c-red:      #ff5252;
+  --c-purple:   #ce93d8;
+  --c-text:     #78909c;
+  --c-text-hi:  #b0bec5;
+  --c-done:     #1a3a24;
+  --c-done-txt: #2e7d32;
+  --font-d:     'Orbitron', monospace;
+  --font-m:     'Share Tech Mono', monospace;
+  --tab-h:      48px;
+  --header-h:   56px;
+}
+
+body {
+  background: var(--bg);
+  font-family: var(--font-m);
+  font-size: 13px;
+  color: var(--c-text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.efb-header {
+  height: var(--header-h);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-hi);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 20px #000a;
+}
+
+.efb-title {
+  font-family: var(--font-d);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--c-blue);
+  letter-spacing: 2px;
+  text-shadow: 0 0 12px #29b6f640;
+  line-height: 1.2;
+}
+
+.efb-title span {
+  display: block;
+  font-size: 7px;
+  color: #37474f;
+  letter-spacing: 1px;
+  font-weight: 400;
+  margin-top: 1px;
+}
+
+.header-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--c-green);
+  box-shadow: 0 0 8px var(--c-green);
+  animation: blink 2.4s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,88%,100%{opacity:1} 94%{opacity:0.1}
+}
+
+/* ===== TABS ===== */
+.tabs-wrap {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  position: sticky;
+  top: var(--header-h);
+  z-index: 99;
+}
+.tabs-wrap::-webkit-scrollbar { display: none; }
+
+.tabs {
+  display: flex;
+  min-width: max-content;
+  padding: 0 6px;
+}
+
+.tab {
+  font-family: var(--font-d);
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #2a4a5e;
+  padding: 0 12px;
+  height: var(--tab-h);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  user-select: none;
+  transition: color 0.15s, border-color 0.15s;
+  position: relative;
+}
+
+.tab:active { opacity: 0.7; }
+
+.tab.active {
+  color: var(--c-blue);
+  border-bottom-color: var(--c-blue);
+  text-shadow: 0 0 8px #29b6f640;
+}
+
+.tab .tab-badge {
+  background: var(--c-green-dim);
+  color: var(--c-green);
+  border-radius: 8px;
+  font-family: var(--font-m);
+  font-size: 7px;
+  font-weight: 400;
+  padding: 1px 4px;
+  min-width: 18px;
+  text-align: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tab.complete .tab-badge {
+  background: #0d2a0d;
+  color: #2e7d32;
+}
+
+/* ===== PHASE CONTENT ===== */
+.phases { flex: 1; }
+
+.phase { display: none; padding-bottom: 100px; }
+.phase.active { display: block; }
+
+/* ===== PROGRESS BAR ===== */
+.phase-header {
+  padding: 10px 14px 8px;
+  position: sticky;
+  top: 0; /* será sobrescrito pelo JS após medir alturas reais */
+  z-index: 98;
+  background: var(--bg);
+  box-shadow: 0 4px 16px var(--bg);
+  border-bottom: 1px solid var(--border-hi);
+}
+
+.phase-title {
+  font-family: var(--font-d);
+  font-size: 9px;
+  color: var(--c-blue);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.phase-title .prog-txt {
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: var(--c-green);
+  text-shadow: 0 0 6px #00e67640;
+}
+
+.progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-blue-dim), var(--c-blue));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 6px var(--c-blue);
+}
+
+.progress-fill.complete {
+  background: linear-gradient(90deg, var(--c-green-dim), var(--c-green));
+  box-shadow: 0 0 6px var(--c-green);
+}
+
+/* ===== GROUPS ===== */
+.group {
+  margin: 0;
+}
+
+.group-title {
+  font-family: var(--font-d);
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: #1a4a6e;
+  text-transform: uppercase;
+  padding: 10px 14px 4px;
+  border-top: 1px solid #0a1a24;
+  background: var(--bg-group);
+}
+
+/* ===== CHECKLIST ITEMS — label + checkbox nativo ===== */
+/* Esconde o checkbox nativo mas mantém funcionalidade */
+.item-cb {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0 14px;
+  min-height: 50px;
+  border-bottom: 1px solid #050d14;
+  background: var(--bg-item);
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.item:active { background: #0a1820; }
+
+/* Estado checked via CSS puro — funciona em qualquer browser */
+.item:has(.item-cb:checked) {
+  background: var(--c-done);
+}
+
+.item:has(.item-cb:checked) .item-name {
+  color: var(--c-done-txt);
+  text-decoration: line-through;
+  text-decoration-color: #1a4a24;
+}
+
+.item:has(.item-cb:checked) .item-action {
+  color: #1a4a24;
+}
+
+/* ===== VISUAL CHECKBOX CUSTOMIZADO ===== */
+/* Mantemos o visual com pseudo-elemento no item-content */
+.item-content {
+  flex: 1;
+  padding: 10px 0 10px 34px; /* espaço para o check visual à esquerda */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 50px;
+  position: relative;
+}
+
+/* Check box visual via ::before no item-content */
+.item-content::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-hi);
+  border-radius: 3px;
+  background: var(--bg);
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+/* Check mark via ::after */
+.item-content::after {
+  content: '✓';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-green);
+  font-size: 12px;
+  text-shadow: 0 0 6px var(--c-green);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.item:has(.item-cb:checked) .item-content::before {
+  background: var(--c-green-dim);
+  border-color: var(--c-green);
+  box-shadow: 0 0 6px #00e67630;
+}
+
+.item:has(.item-cb:checked) .item-content::after {
+  opacity: 1;
+}
+
+.item-name {
+  font-family: var(--font-m);
+  font-size: 13px;
+  color: var(--c-text-hi);
+  line-height: 1.3;
+  flex: 1;
+}
+
+.item-name .item-note {
+  display: block;
+  font-size: 11px;      /* era 10px — muito pequeno */
+  color: #546e7a;       /* era #37474f — contraste insuficiente */
+  margin-top: 2px;
+}
+
+.item-action {
+  font-family: var(--font-d);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--c-amber);
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+/* Tags especiais */
+.tag {
+  display: inline-block;
+  font-size: 8px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-m);
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.tag-gsx   { background: #1a0d30; color: var(--c-purple); border: 1px solid #3a1a5e; }
+.tag-warn  { background: #1f0000; color: var(--c-red);    border: 1px solid #4a0000; }
+.tag-msfs  { background: #001220; color: var(--c-blue);   border: 1px solid #0a2a40; }
+.tag-fms   { background: #001a0a; color: var(--c-green);  border: 1px solid #0a3a18; }
+
+/* Tipo de ação colorido */
+.act-on    { color: var(--c-green); }
+.act-off   { color: #546e7a; }
+.act-chk   { color: var(--c-blue); }
+.act-test  { color: var(--c-amber); }
+.act-warn  { color: var(--c-red); animation: warn-pulse 2s ease-in-out infinite; }
+
+@keyframes warn-pulse {
+  0%,100%{opacity:1} 50%{opacity:0.6}
+}
+
+/* ===== RESET BUTTON ===== */
+.reset-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--bg) 30%);
+  display: flex;
+  gap: 8px;
+  z-index: 200;
+}
+
+.btn-reset {
+  flex: 1;
+  height: 44px;
+  background: #0a1820;
+  border: 1px solid var(--border-hi);
+  border-radius: 6px;
+  color: #2a4a6e;
+  font-family: var(--font-d);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-reset:active {
+  background: #0d1e2e;
+  color: var(--c-blue);
+  border-color: var(--c-blue);
+}
+
+.btn-complete {
+  flex: 2;
+  height: 44px;
+  background: var(--c-green-dim);
+  border: 1px solid #0d4a20;
+  border-radius: 6px;
+  color: #1a4a24;
+  font-family: var(--font-d);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-complete:active,
+.btn-complete.ready {
+  background: #022d14;
+  border-color: var(--c-green);
+  color: var(--c-green);
+  box-shadow: 0 0 12px #00e67620;
+}
+
+/* ===== COMPLETE OVERLAY ===== */
+.phase-complete {
+  display: none;
+  text-align: center;
+  padding: 30px 20px;
+  animation: fade-in 0.5s ease;
+}
+.phase-complete.show { display: block; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.complete-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%,100% { text-shadow: 0 0 10px var(--c-green); }
+  50%      { text-shadow: 0 0 30px var(--c-green), 0 0 60px #00e67640; }
+}
+
+.complete-text {
+  font-family: var(--font-d);
+  font-size: 11px;
+  color: var(--c-green);
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px #00e67640;
+}
+
+.complete-sub {
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: #1a4a24;
+  margin-top: 6px;
+  letter-spacing: 1px;
+}
+
+/* Scrollbar global */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="efb-header">
+  <div>
+    <div class="efb-title">
+      ATR 72-600 · EFB
+      <span>FCTM SEP/2018 · GSX PRO 3.8.2 · MSFS 2024</span>
+    </div>
+  </div>
+  <div class="header-dot"></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-wrap">
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-phase="cold-dark">
+      COLD &amp; DARK
+      <span class="tab-badge" id="badge-cold-dark">0</span>
+    </div>
+    <div class="tab" data-phase="hotel-mode">
+      HOTEL MODE
+      <span class="tab-badge" id="badge-hotel-mode">—</span>
+    </div>
+    <div class="tab" data-phase="before-taxi">
+      BEF. TAXI
+      <span class="tab-badge" id="badge-before-taxi">—</span>
+    </div>
+    <div class="tab" data-phase="taxi">
+      TAXI
+      <span class="tab-badge" id="badge-taxi">—</span>
+    </div>
+    <div class="tab" data-phase="before-to">
+      BEF. T/O
+      <span class="tab-badge" id="badge-before-to">—</span>
+    </div>
+    <div class="tab" data-phase="takeoff">
+      TAKEOFF
+      <span class="tab-badge" id="badge-takeoff">—</span>
+    </div>
+    <div class="tab" data-phase="climb">
+      CLIMB/CRZ
+      <span class="tab-badge" id="badge-climb">—</span>
+    </div>
+    <div class="tab" data-phase="descent">
+      DESCENT
+      <span class="tab-badge" id="badge-descent">—</span>
+    </div>
+    <div class="tab" data-phase="approach">
+      APPROACH
+      <span class="tab-badge" id="badge-approach">—</span>
+    </div>
+    <div class="tab" data-phase="landing">
+      LANDING
+      <span class="tab-badge" id="badge-landing">—</span>
+    </div>
+    <div class="tab" data-phase="parking">
+      PARKING
+      <span class="tab-badge" id="badge-parking">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- PHASES -->
+<div class="phases">
+
+  <!-- ==================== COLD & DARK ==================== -->
+  <div class="phase active" id="phase-cold-dark">
+
+    <div class="phase-header">
+      <div class="phase-title">
+        <span>① COLD &amp; DARK</span>
+        <span class="prog-txt" id="prog-txt-cold-dark">0 / 0</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="prog-cold-dark" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- GRUPO 1 — GSX -->
+    <div class="group">
+      <div class="group-title">① GSX — SERVIÇOS DE SOLO</div>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>GPU
+            <span class="item-note">Additional Services → GPU → conectar</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>ACU
+            <span class="item-note">Ar condicionado externo — Additional Services</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>Escada
+            <span class="item-note">Porta de pax fica na TRASEIRA no ATR</span>
+          </div>
+          <div class="item-action act-on">CHAMAR</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>Bagagem
+            <span class="item-note">Carga vai no compartimento DIANTEIRO</span>
+          </div>
+          <div class="item-action act-on">CHAMAR</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>Catering
+            <span class="item-note">Veículo vai pelo lado direito</span>
+          </div>
+          <div class="item-action act-on">CHAMAR</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>Fueling
+            <span class="item-note">Verificar QTD conforme SimBrief FOB</span>
+          </div>
+          <div class="item-action act-on">CHAMAR</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>Boarding
+            <span class="item-note">Chamar ANTES de ligar Hotel Mode</span>
+          </div>
+          <div class="item-action act-warn">⚠ ANTES</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- GRUPO 2 — ENERGIZAÇÃO -->
+    <div class="group">
+      <div class="group-title">② ENERGIZAÇÃO</div>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">BAT 1
+            <span class="item-note">Overhead — inicia self-test MFC</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">BAT 2
+            <span class="item-note">Overhead</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">MFC Autotest
+            <span class="item-note">MFC 1A/2A piscam → MFC 1B/2B → aguardar</span>
+          </div>
+          <div class="item-action act-chk">CHECK</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">EMER BUS / ESS BUS
+            <span class="item-note">Setas acesas no SD elétrico = OK</span>
+          </div>
+          <div class="item-action act-chk">ARROWS ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">NAV Lights
+            <span class="item-note">ON sempre que eletricamente alimentado</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">EXT PWR
+            <span class="item-note">Verificar AVAIL aceso, depois pressionar</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">IESI
+            <span class="item-note">Instrumento standby — verificar alinhamento</span>
+          </div>
+          <div class="item-action act-chk">ALIGN</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- GRUPO 3 — PESO E COMBUSTÍVEL -->
+    <div class="group">
+      <div class="group-title">③ PESO &amp; COMBUSTÍVEL</div>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-msfs">MSFS</span>Peso &amp; Balanceamento
+            <span class="item-note">Menu MSFS → setar payload + combustível</span>
+          </div>
+          <div class="item-action act-chk">SET</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-fms">FMS</span>ZFW + FOB
+            <span class="item-note">MCDU → WEIGHTS → ZFW (sem fuel) + FOB. 3s = auto-fill</span>
+          </div>
+          <div class="item-action act-chk">INSERT</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- GRUPO 4 — VERIFICAÇÕES INICIAIS -->
+    <div class="group">
+      <div class="group-title">④ VERIFICAÇÕES INICIAIS</div>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Frk. Estacionamento
+            <span class="item-note">Alavanca puxada</span>
+          </div>
+          <div class="item-action act-chk">PARKING</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">PL 1 &amp; 2
+            <span class="item-note">Manetes de potência — posição de repouso</span>
+          </div>
+          <div class="item-action act-chk">GI</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Gust Lock
+            <span class="item-note">Trava de superfícies — verificar acionado</span>
+          </div>
+          <div class="item-action act-chk">ON ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">CL 1 &amp; 2
+            <span class="item-note">Condition Levers — ambos em Fuel Shut Off</span>
+          </div>
+          <div class="item-action act-chk">FS/O ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Flaps Lever
+            <span class="item-note">Verificar indicação consistente com posição</span>
+          </div>
+          <div class="item-action act-chk">0° ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Landing Gear Lever
+            <span class="item-note">Alavanca DOWN + 3 luzes verdes + sem vermelhas</span>
+          </div>
+          <div class="item-action act-chk">DOWN ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">EEC 1 &amp; 2
+            <span class="item-note">Electronic Engine Control — pressed in, sem luz</span>
+          </div>
+          <div class="item-action act-chk">PRESS IN</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Wipers
+          </div>
+          <div class="item-action act-off">OFF</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- GRUPO 5 — OVERHEAD PANEL -->
+    <div class="group">
+      <div class="group-title">⑤ OVERHEAD PANEL</div>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Prop Brake
+            <span class="item-note">HYD AUX PUMP se READY light não acender → ON</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">ANN LT Test
+            <span class="item-note">Todas as luzes acendem → verifica queimadas</span>
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Fuel Pumps &amp; X-Feed
+            <span class="item-note">Testa bomba 2 → apaga luz → bomba 1 → crossfeed → desliga</span>
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">ENG 1 Fire
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">ENG 2 Fire
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">ENG Start Selector
+            <span class="item-note">Dois botões — OFF e START ABORT</span>
+          </div>
+          <div class="item-action act-chk">OFF/ABT</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">CVR &amp; SSFDR
+            <span class="item-note">Voice Recorder + Flight Data Recorder</span>
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Signs Panel
+            <span class="item-note">Seat belts + No smoking — verificar memo panel</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Emer Exit Lights
+            <span class="item-note">Toggle switch — DISARM light apagada</span>
+          </div>
+          <div class="item-action act-on">ARM</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">De/Anti-Icing
+            <span class="item-note">Exceto AFR AIR BLEED amber — normal sem motor</span>
+          </div>
+          <div class="item-action act-off">OFF ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Probes Heating
+            <span class="item-note">
+              <span class="tag tag-warn">⚠</span>OFF — risco de queimar pessoal no solo
+            </span>
+          </div>
+          <div class="item-action act-off">OFF ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Windshield Heating
+          </div>
+          <div class="item-action act-on">ON ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Recirc Fan 1 &amp; 2
+            <span class="item-note">Ventilação de recirculação da cabine</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">OVBD Valve
+          </div>
+          <div class="item-action act-chk">AUTO/GRD</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Oxygen Panel
+            <span class="item-note">Main supply ON, pressão OK, sem luz PAX</span>
+          </div>
+          <div class="item-action act-chk">CHECK</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Compt Smoke
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- GRUPO 6 — PEDESTAL -->
+    <div class="group">
+      <div class="group-title">⑥ PEDESTAL</div>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">ATPCS Static Test
+            <span class="item-note">Sistema de proteção de perda de motor — gira seletor</span>
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Idle Gate
+            <span class="item-note">Alavanca puxada, banda âmbar visível, sem IDLE GATE FAIL</span>
+          </div>
+          <div class="item-action act-chk">PULL ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Trims
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Gust Lock Lever
+            <span class="item-note">Pedestal — confirmar posição ON</span>
+          </div>
+          <div class="item-action act-on">ON</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Flaps Lever — Pedestal
+          </div>
+          <div class="item-action act-chk">0° ✓</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Transponder
+            <span class="item-note">VCP — SURV/XPDR 1 e 2</span>
+          </div>
+          <div class="item-action act-chk">STBY</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">TCAS
+            <span class="item-note">VCP — AUTO, sem flag</span>
+          </div>
+          <div class="item-action act-chk">AUTO</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Weather Radar
+          </div>
+          <div class="item-action act-test">TEST/STBY</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-fms">FMS</span>MCDU — Inicialização
+            <span class="item-note">POS INIT → GPS → NAV DATA → UNITS → WEIGHTS → PERF → FPLN</span>
+          </div>
+          <div class="item-action act-chk">INIT</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- GRUPO 7 — PAINEL CENTRAL -->
+    <div class="group">
+      <div class="group-title">⑦ PAINEL CENTRAL</div>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Stick Pusher/Shaker
+            <span class="item-note">Pressed in e guarded</span>
+          </div>
+          <div class="item-action act-chk">IN/GRD</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">APM
+            <span class="item-note">Aircraft Performance Monitor</span>
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">PEC 1 &amp; 2
+            <span class="item-note">Pressed in, sem luz</span>
+          </div>
+          <div class="item-action act-chk">IN/OFF</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Boost
+            <span class="item-note">Se instalado — test e desliga</span>
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Power MGT
+            <span class="item-note">Seletor de gerenciamento de potência</span>
+          </div>
+          <div class="item-action act-on">TO</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">EEC 1 &amp; 2 — Central
+            <span class="item-note">Pressed in, sem luz</span>
+          </div>
+          <div class="item-action act-chk">IN/OFF</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">ATPCS — Central
+            <span class="item-note">Pressed in, sem luz</span>
+          </div>
+          <div class="item-action act-chk">IN/OFF</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Cab Press Mode Sel
+            <span class="item-note">Pressed in</span>
+          </div>
+          <div class="item-action act-chk">PRESS IN</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Cab Press Rate Knob
+            <span class="item-note">Index na marca verde, marca vermelha oculta</span>
+          </div>
+          <div class="item-action act-chk">NORM</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Auto Press Panel
+          </div>
+          <div class="item-action act-test">TEST &amp; SET</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Antiskid
+            <span class="item-note">Anti-derrapagem — pressed in, sem FAULT</span>
+          </div>
+          <div class="item-action act-chk">IN/OK</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">GPWS Test
+            <span class="item-note">Ground Proximity Warning System</span>
+          </div>
+          <div class="item-action act-test">TEST</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- GRUPO 8 — PREP. FINAL -->
+    <div class="group">
+      <div class="group-title">⑧ PREPARAÇÃO FINAL</div>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">Altímetro
+            <span class="item-note">QNH do aeroporto de partida — SET &amp; CHECK</span>
+          </div>
+          <div class="item-action act-chk">QNH SET</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">FMA no PFD
+            <span class="item-note">Sem flags, sem mensagens amber</span>
+          </div>
+          <div class="item-action act-chk">CHECK</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-fms">FMS</span>FPLN — Rota completa
+            <span class="item-note">SID, waypoints, STAR, approach. Sem discontinuidades</span>
+          </div>
+          <div class="item-action act-chk">CHECK</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-fms">FMS</span>VNAV — QNH + OAT
+            <span class="item-note">MCDU → VNAV → inserir QNH e temperatura</span>
+          </div>
+          <div class="item-action act-chk">SET</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>Boarding concluído
+            <span class="item-note">Confirmar antes de acionar Hotel Mode</span>
+          </div>
+          <div class="item-action act-warn">⚠ CONF</div>
+        </div>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" class="item-cb" onchange="updateProgress()">
+        <div class="item-content">
+          <div class="item-name">
+            <span class="tag tag-gsx">GSX</span>Todos os serviços concluídos
+            <span class="item-note">Bagagem ✓ · Catering ✓ · Fueling ✓ · Escada ✓</span>
+          </div>
+          <div class="item-action act-warn">⚠ CONF</div>
+        </div>
+      </label>
+
+    </div>
+
+    <!-- COMPLETE MESSAGE -->
+    <div class="phase-complete" id="complete-cold-dark">
+      <div class="complete-icon">✅</div>
+      <div class="complete-text">COLD &amp; DARK COMPLETE</div>
+      <div class="complete-sub">→ PRÓXIMA FASE: HOTEL MODE</div>
+    </div>
+
+  </div>
+  <!-- /COLD & DARK -->
+
+  <!-- Placeholders para as demais fases — serão construídas nas próximas sessões -->
+  <div class="phase" id="phase-hotel-mode">
+    <div class="phase-header">
+      <div class="phase-title"><span>② HOTEL MODE</span></div>
+    </div>
+    <div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">
+      EM CONSTRUÇÃO — PRÓXIMA SESSÃO
+    </div>
+  </div>
+  <div class="phase" id="phase-before-taxi"><div class="phase-header"><div class="phase-title"><span>③ BEFORE TAXI</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+  <div class="phase" id="phase-taxi"><div class="phase-header"><div class="phase-title"><span>④ TAXI</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+  <div class="phase" id="phase-before-to"><div class="phase-header"><div class="phase-title"><span>⑤ BEFORE TAKEOFF</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+  <div class="phase" id="phase-takeoff"><div class="phase-header"><div class="phase-title"><span>⑥ TAKEOFF</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+  <div class="phase" id="phase-climb"><div class="phase-header"><div class="phase-title"><span>⑦ CLIMB / CRUISE</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+  <div class="phase" id="phase-descent"><div class="phase-header"><div class="phase-title"><span>⑧ DESCENT</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+  <div class="phase" id="phase-approach"><div class="phase-header"><div class="phase-title"><span>⑨ APPROACH</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+  <div class="phase" id="phase-landing"><div class="phase-header"><div class="phase-title"><span>⑩ LANDING</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+  <div class="phase" id="phase-parking"><div class="phase-header"><div class="phase-title"><span>⑪ PARKING</span></div></div><div style="padding:40px 20px; text-align:center; color:#1a4060; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:2px;">EM CONSTRUÇÃO</div></div>
+
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="reset-bar">
+  <button class="btn-reset" onclick="resetPhase()">↺ RESET</button>
+  <button class="btn-complete" id="btn-complete">FASE COMPLETA</button>
+</div>
+
+<script>
+// ===== STATE =====
+const phases = ['cold-dark','hotel-mode','before-taxi','taxi','before-to','takeoff','climb','descent','approach','landing','parking'];
+let activePhase = 'cold-dark';
+
+// ===== TOGGLE — eventos nativos de checkbox =====
+function toggle(item) {
+  updateProgress();
+}
+
+// 'change' + 'input' — garante cobertura em todos os browsers
+['change', 'input'].forEach(function(evt) {
+  document.addEventListener(evt, function(e) {
+    if (e.target.classList.contains('item-cb')) {
+      updateProgress();
+    }
+  });
+});
+
+// Fallback direto: click no label → atualiza após tick
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.item')) {
+    setTimeout(updateProgress, 30);
+  }
+});
+
+// ===== PROGRESS =====
+function updateProgress() {
+  const phase = activePhase;
+  const container = document.getElementById('phase-' + phase);
+  const items   = container.querySelectorAll('.item-cb');
+  const checked = container.querySelectorAll('.item-cb:checked').length;
+  const total   = items.length;
+
+  if (total === 0) return;
+
+  const pct = Math.round((checked / total) * 100);
+
+  // progress bar
+  const fill = document.getElementById('prog-' + phase);
+  if (fill) {
+    fill.style.width = pct + '%';
+    fill.classList.toggle('complete', pct === 100);
+  }
+
+  // text
+  const txt = document.getElementById('prog-txt-' + phase);
+  if (txt) txt.textContent = checked + ' / ' + total;
+
+  // badge
+  const badge = document.getElementById('badge-' + phase);
+  if (badge && badge.textContent !== '—') {
+    badge.textContent = checked + '/' + total;
+  } else if (badge) {
+    badge.textContent = checked + '/' + total;
+  }
+
+  // complete button
+  const btn = document.getElementById('btn-complete');
+  if (btn) btn.classList.toggle('ready', pct === 100);
+
+  // complete overlay
+  const overlay = document.getElementById('complete-' + phase);
+  if (overlay) overlay.classList.toggle('show', pct === 100);
+
+  // tab badge
+  const tab = document.querySelector('[data-phase="' + phase + '"]');
+  if (tab) tab.classList.toggle('complete', pct === 100);
+}
+
+// ===== RESET PHASE =====
+function resetPhase() {
+  if (!confirm('Resetar ' + activePhase.replace(/-/g,' ').toUpperCase() + '?')) return;
+  const container = document.getElementById('phase-' + activePhase);
+  container.querySelectorAll('.item-cb:checked').forEach(cb => cb.checked = false);
+  updateProgress();
+}
+
+// ===== TAB SWITCH =====
+document.getElementById('tabs').addEventListener('click', function(e) {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  const phase = tab.dataset.phase;
+  if (!phase) return;
+
+  // deactivate old
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+
+  // activate new
+  tab.classList.add('active');
+  document.getElementById('phase-' + phase).classList.add('active');
+  activePhase = phase;
+
+  // scroll tab into view
+  tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+  updateProgress();
+});
+
+// ===== STICKY TOP — mede alturas reais após render =====
+function fixStickyTop() {
+  const header = document.querySelector('.efb-header');
+  const tabs   = document.querySelector('.tabs-wrap');
+  if (!header || !tabs) return;
+  const offset = header.getBoundingClientRect().height + tabs.getBoundingClientRect().height;
+  document.querySelectorAll('.phase-header').forEach(el => {
+    el.style.top = offset + 'px';
+  });
+}
+
+// roda após render e em resize (rotação do dispositivo)
+window.addEventListener('load',   fixStickyTop);
+window.addEventListener('resize', fixStickyTop);
+// fallback extra para iOS que às vezes demora
+setTimeout(fixStickyTop, 200);
+
+// DOMContentLoaded — roda assim que o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', fixStickyTop);
+</script>
+
+</body>
+</html>
